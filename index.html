@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>購物車</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.5/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <link rel="stylesheet" href="./css/蛋捲商店.css">
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+</head>
+
+<body>
+    <div id="app">
+        <!-- 導航欄 -->
+        <nav class="navbar navbar-expand-lg bg-warning">
+            <div class="container">
+                <a class="navbar-brand" href="#">
+                    <img class="logo" src="./蛋捲商店/cat.jpg" alt="Logo" style="cursor: pointer;">
+                </a>
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse"
+                    data-bs-target="#navbarNavAltMarkup">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+                <div class="collapse navbar-collapse" id="navbarNavAltMarkup">
+                    <div class="navbar-nav ms-auto">
+                        <a class="nav-link active" href="#">品牌故事</a>
+                        <a class="nav-link" href="#">產品預購</a>
+                        <a class="nav-link" href="#">最新消息</a>
+                        <a class="nav-link disabled">聯絡我們</a>
+                        <a class="nav-link" href="#">
+                            <i class="bi bi-cart3"></i>
+                        </a>
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                                <i class="bi bi-person-circle"></i>
+                            </a>
+                            <ul class="dropdown-menu" style="left: -300%;">
+                                <li><a class="dropdown-item" href="#">免費註冊</a></li>
+                                <li><a class="dropdown-item" href="#">會員登入</a></li>
+                                <li><a class="dropdown-item" href="#">忘記密碼</a></li>
+                            </ul>
+                        </li>
+                    </div>
+                </div>
+            </div>
+        </nav>
+
+        <!-- 主要內容 -->
+        <main class="container-fluid p-5" style="background-color: lightgray;">
+            <div class="container lg-w-75 p-5 bg-light shadow">
+                <div class="fs-2 mb-5">購物車</div>
+
+                <!-- 進度條 -->
+                <div class="row text-center d-flex align-items-center mb-5">
+                    <div class="col-3 p-0" v-for="(step, index) in steps" :key="index">
+                        <div class="position-relative">
+                            <div class="step-circle-wh mx-auto rounded-circle text-white d-flex justify-content-center align-items-center"
+                                :class="getStepClass(index)">
+                                {{ index + 1 }}
+                                <div v-if="index < steps.length - 1" class="progress my-progress position-absolute">
+                                    <div class="progress-bar" :style="{ width: getProgressWidth(index) }"></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="fs-6 mt-2">{{ step.title }}</div>
+                    </div>
+                </div>
+
+                <!-- 步驟 1: 確認購物車 -->
+                <div v-if="currentStep === 1">
+                    <div class="fs-2 mt-5">訂單明細</div>
+                    <div class="row">
+                        <div class="shop-item row text-center mt-3" v-for="item in products" :key="item.id">
+                            <div class="product">
+                                <div class="col-2 col-xl-1 shop-item-img d-flex align-items-end">
+                                    <img class="shop-img" :src="item.image" :alt="item.name">
+                                </div>
+                                <div
+                                    class="col-3 col-xl-7 shop-item-infomation text-start d-flex flex-column justify-content-between">
+                                    <div class="item-name fs-5">{{ item.name }}</div>
+                                    <div class="item-id fs-7">{{ item.category }}</div>
+                                </div>
+                                <div class="col-4 col-xl-2 shop-item mx-5 d-flex align-items-center mx-auto">
+                                    <button type="button" class="btn btn-outline-secondary"
+                                        @click="decreaseQuantity(item.id)">−</button>
+                                    <input type="number" v-model.number="item.quantity" min="1" max="20"
+                                        class="item-qty mx-1 mb-1 text-center">
+                                    <button type="button" class="btn btn-outline-secondary"
+                                        @click="increaseQuantity(item.id)">+</button>
+                                    <div class="item-price text-start me-2 ms-1">NT${{ item.price }}</div>
+                                    <button type="button" class="btn btn-outline-danger"
+                                        @click="removeItem(item.id)">🗑️</button>
+                                </div>
+                            </div>
+                            <hr class="my-4">
+                        </div>
+
+                        <!-- 總計 -->
+                        <div class="row py-3 d-flex justify-content-end">
+                            <table class="table-light m-0 d-flex justify-content-end">
+                                <tbody>
+                                    <tr>
+                                        <th scope="row" class="lead">數量：</th>
+                                        <td style="width: 100px;" class="lead text-end">{{ totalQuantity }}</td>
+                                    </tr>
+                                    <tr>
+                                        <th scope="row" class="lead">小計：</th>
+                                        <td style="width: 100px;" class="lead text-end">{{ totalPrice }}</td>
+                                    </tr>
+                                    <tr>
+                                        <th scope="row" class="lead">運費：</th>
+                                        <td style="width: 100px;" class="lead text-end">{{ shippingFee }}</td>
+                                    </tr>
+                                    <tr>
+                                        <th scope="row" class="lead">總計：</th>
+                                        <td style="width: 100px;" class="lead text-end">{{ grandTotal }}</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                            <hr class="my-4">
+                        </div>
+                        <!-- 按鈕控制 -->
+                        <div class="row d-flex justify-content-between mt-3">
+                            <div class="col-6">
+                                <button class="btn btn-light" @click="goToPrevStep" :disabled="currentStep === 1">
+                                    <i class="bi bi-arrow-left"></i>返回首頁
+                                </button>
+                            </div>
+                            <div class="col-6 d-flex justify-content-end">
+                                <button v-if="currentStep < steps.length - 1" class="btn btn-primary"
+                                    @click="goToNextStep">下一步</button>
+                                <button v-else-if="currentStep === steps.length - 1" class="btn btn-success"
+                                    @click="submitOrder">送出訂單</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 步驟 2: 付款與運送方式 -->
+                <div v-if="currentStep === 2">
+                    <div class="col">
+                        <p class="title fs-3 pb-3">付款方式</p>
+                        <div class="ps-3">
+                            <div class="form-check my-4">
+                                <input class="form-check-input" type="radio" value="credit-card" v-model="paymentMethod"
+                                    id="credit-card">
+                                <label class="form-check-label" for="credit-card">信用卡付款</label>
+                            </div>
+                            <hr>
+                            <div class="form-check my-4">
+                                <input class="form-check-input" type="radio" value="web-atm" v-model="paymentMethod"
+                                    id="web-atm">
+                                <label class="form-check-label" for="web-atm">網路 ATM</label>
+                            </div>
+                            <hr>
+                            <div class="form-check mt-4">
+                                <input class="form-check-input" type="radio" value="store-code" v-model="paymentMethod"
+                                    id="store-code">
+                                <label class="form-check-label" for="store-code">超商代碼</label>
+                            </div>
+                        </div>
+                    </div>
+                    <hr class="my-4">
+                    <div class="col">
+                        <p class="title fs-3 pb-3">運送方式</p>
+                        <div class="ps-3">
+                            <div class="form-check my-4">
+                                <input class="form-check-input" type="radio" value="home-delivery"
+                                    v-model="deliveryMethod" id="home-delivery">
+                                <label class="form-check-label" for="home-delivery">黑貓宅配</label>
+                            </div>
+                            <hr>
+                            <div class="form-check mt-4">
+                                <input class="form-check-input" type="radio" value="store-pickup"
+                                    v-model="deliveryMethod" id="store-pickup">
+                                <label class="form-check-label" for="store-pickup">超商店到店</label>
+                            </div>
+                        </div>
+                    </div>
+                    <hr class="my-5">
+                    <div class="row d-flex justify-content-end">
+                        <table class="table-light m-0 d-flex justify-content-end">
+                            <tbody>
+                                <tr>
+                                    <th scope="row" class="lead">數量：</th>
+                                    <td style="width: 100px;" class="lead text-end">{{ totalQuantity }}</td>
+                                </tr>
+                                <tr>
+                                    <th scope="row" class="lead">小計：</th>
+                                    <td style="width: 100px;" class="lead text-end">{{ totalPrice }}</td>
+                                </tr>
+                                <tr>
+                                    <th scope="row" class="lead">運費：</th>
+                                    <td style="width: 100px;" class="lead text-end">{{ shippingFee }}</td>
+                                </tr>
+                                <tr>
+                                    <th scope="row" class="lead">總計：</th>
+                                    <td style="width: 100px;" class="lead text-end">{{ grandTotal }}</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                        <hr class="my-4">
+                    </div>
+                    <!-- 按鈕控制 -->
+                    <div class="row d-flex justify-content-between mt-3">
+                        <div class="col-6">
+                            <button class="btn btn-light" @click="goToPrevStep" :disabled="currentStep === 1">
+                                <i class="bi bi-arrow-left"></i> 上一步
+                            </button>
+                        </div>
+                        <div class="col-6 d-flex justify-content-end">
+                            <button v-if="currentStep < steps.length - 1" class="btn btn-primary"
+                                @click="goToNextStep">下一步</button>
+                            <button v-else-if="currentStep === steps.length - 1" class="btn btn-success"
+                                @click="submitOrder">送出訂單</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 步驟3：填寫資料 -->
+                <div v-if="currentStep === 3">
+                    <form @submit.prevent="handleSubmit" novalidate>
+                        <div class="box">寄送資料</div>
+                        <br />
+                        <div class="row g-3">
+                            <div class="col-12">
+                                <label for="inputName" class="form-label">姓名</label>
+                                <input v-model.trim="formData.name" type="text" class="form-control" id="inputName"
+                                    placeholder="王小明" required />
+                            </div>
+                            <div class="col-12">
+                                <label for="inputPhone" class="form-label">電話</label>
+                                <input v-model.trim="formData.phone" type="tel" class="form-control" id="inputPhone"
+                                    placeholder="0912345678" pattern="09\\d{8}" required />
+                            </div>
+                            <div class="col-12">
+                                <label for="inputEmail" class="form-label">E-mail</label>
+                                <input v-model.trim="formData.email" type="email" class="form-control" id="inputEmail"
+                                    placeholder="a123@gmail.com" required />
+                            </div>
+
+                            <p>地址</p>
+                            <div class="row">
+                                <div class="col-6">
+                                    <input v-model.trim="formData.address1" type="text" class="form-control"
+                                        id="inputAddress1" placeholder="郵遞區號" aria-label="郵遞區號" required />
+                                </div>
+                                <div class="col-6">
+                                    <input v-model.trim="formData.address2" type="text" class="form-control"
+                                        id="inputAddress2" placeholder="請填寫縣市名" aria-label="縣市名" required />
+                                </div>
+                            </div>
+                            <br />
+                            <div class="col-12">
+                                <input v-model.trim="formData.address" type="text" class="form-control"
+                                    id="inputAddress" placeholder="地址" required />
+                            </div>
+                        </div>
+
+                        <hr class="my-5" />
+
+                        <!-- 小計 -->
+                        <div class="row d-flex justify-content-end">
+                            <table class="table-light m-0 d-flex justify-content-end" id="cartDetails">
+                                <tbody>
+                                    <tr>
+                                        <th scope="row" class="lead">數量：</th>
+                                        <td style="width: 100px;" class="lead text-end">{{ totalQuantity }}</td>
+                                    </tr>
+                                    <tr>
+                                        <th scope="row" class="lead">小計：</th>
+                                        <td style="width: 100px;" class="lead text-end">{{ totalPrice }}</td>
+                                    </tr>
+                                    <tr>
+                                        <th scope="row" class="lead">運費：</th>
+                                        <td style="width: 100px;" class="lead text-end">{{ shippingFee }}</td>
+                                    </tr>
+                                    <tr>
+                                        <th scope="row" class="lead">總計：</th>
+                                        <td style="width: 100px;" class="lead text-end">{{ grandTotal }}</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                            <hr class="my-4" />
+                        </div>
+
+                        <div class="row d-flex justify-content-between">
+                            <div class="col-6">
+                                <button type="button" class="btn btn-light" @click="goToPrevStep">
+                                    <i class="bi bi-arrow-left"></i> 上一步
+                                </button>
+                            </div>
+                            <div class="col-6 d-flex justify-content-end">
+                                <button type="submit" class="btn btn-primary">前往付款</button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- 步驟4：訂單成立 -->
+                <div v-if="currentStep === 4" class="text-center">
+                    <p class="fs-1 mt-5 mb-5">訂單成立</p>
+
+                    <div id="cartItems">
+                        <div v-for="product in products" :key="product.id"
+                            class="shop-item row text-center mt-3 align-items-center">
+                            <div class="col-2 col-xl-1 shop-item-img d-flex align-items-center">
+                                <img :src="product.image" :alt="product.name" class="shop-img mb-4" />
+                            </div>
+                            <div
+                                class="col-3 col-xl-7 shop-item-infomation text-start d-flex flex-column justify-content-between">
+                                <div class="item-name fs-5 mt-3">{{ product.name }}</div>
+                                <div class="item-id fs-7 mb-5">{{ product.category }}</div>
+                            </div>
+                            <div class="col-4 col-xl-2 shop-item-qty d-flex align-items-center">
+                                x{{ product.quantity }}
+                            </div>
+                            <div class="col-3 col-xl-2 shop-item-price d-flex align-items-center justify-content-end">
+                                NT. {{ product.price * product.quantity }}
+                            </div>
+                        </div>
+                    </div>
+
+                    <hr class="my-4" />
+
+                    <p class="fs-3">寄送資料</p>
+                    <br />
+                    <p>姓名：<span>{{ formData.name }}</span></p>
+                    <br />
+                    <p>電話：<span>{{ formData.phone }}</span></p>
+                    <br />
+                    <p>E-mail：<span>{{ formData.email }}</span></p>
+                    <br />
+                    <p>
+                        地址：
+                        <span>{{ formData.address1 }}</span>
+                        <span>{{ formData.address2 }}</span>
+                        <span>{{ formData.address }}</span>
+                    </p>
+                    <hr class="my-4" />
+
+                    <div class="row d-flex justify-content-end">
+                        <table class="table-light m-0 d-flex justify-content-end" id="cartDetails">
+                            <tbody>
+                                <tr>
+                                    <th scope="row" class="lead">數量：</th>
+                                    <td style="width: 100px;" class="lead text-end">{{ totalQuantity }}</td>
+                                </tr>
+                                <tr>
+                                    <th scope="row" class="lead">小計：</th>
+                                    <td style="width: 100px;" class="lead text-end">NT. {{ totalPrice }}</td>
+                                </tr>
+                                <tr>
+                                    <th scope="row" class="lead">運費：</th>
+                                    <td style="width: 100px;" class="lead text-end">NT. {{ shippingFee }}</td>
+                                </tr>
+                                <tr>
+                                    <th scope="row" class="lead">總計：</th>
+                                    <td style="width: 100px;" class="lead text-end">NT. {{ grandTotal }}</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <hr class="my-4" />
+                    <div class="row d-flex justify-content-between mt-4">
+                        <div class="col-6 d-flex justify-content-start">
+                            <button type="button" class="btn btn-light" @click="goToPrevStep">
+                                <i class="bi bi-arrow-left"></i> 上一步
+                            </button>
+                        </div>
+                        <div class="col-6 d-flex justify-content-end">
+                            <a href="./商品登入頁.html" class="btn btn-primary">返回商店</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- 底部 -->
+        <footer class="container text-center py-5">
+            <div class="row">
+                <div class="col-md d-flex flex-column justify-content-center">
+                    <div class="col logo-text">
+                        <img class="logo mx-2" src="./蛋捲商店/cat.jpg" alt="" height="40px">實心蛋捲
+                    </div>
+                    <div class="col">
+                        <p>© Egg Roll Hall</p>
+                    </div>
+                </div>
+                <div class="col-md">
+                    <h6 class="fw-bold mb-2">服務據點</h6>
+                    <a href="#"
+                        class="d-block link-secondary link-underline-opacity-0 link-underline-opacity-75-hover">勤美門市</a>
+                    <a href="#"
+                        class="d-block link-secondary link-underline-opacity-0 link-underline-opacity-75-hover">站前門市</a>
+                    <a href="#"
+                        class="d-block link-secondary link-underline-opacity-0 link-underline-opacity-75-hover">台中門市</a>
+                    <a href="#"
+                        class="d-block link-secondary link-underline-opacity-0 link-underline-opacity-75-hover">公館門市</a>
+                </div>
+                <div class="col-md">
+                    <h6 class="fw-bold mb-2">常見問題</h6>
+                    <a href="#"
+                        class="d-block link-secondary link-underline-opacity-0 link-underline-opacity-75-hover">如何預定</a>
+                    <a href="#"
+                        class="d-block link-secondary link-underline-opacity-0 link-underline-opacity-75-hover">付款方式</a>
+                    <a href="#"
+                        class="d-block link-secondary link-underline-opacity-0 link-underline-opacity-75-hover">紅利點數</a>
+                    <a href="#"
+                        class="d-block link-secondary link-underline-opacity-0 link-underline-opacity-75-hover">聯絡我們</a>
+                </div>
+                <div class="col-md">
+                    <h6 class="fw-bold mb-2">產品預購</h6>
+                    <a href="#"
+                        class="d-block link-secondary link-underline-opacity-0 link-underline-opacity-75-hover">新品上市</a>
+                    <a href="#"
+                        class="d-block link-secondary link-underline-opacity-0 link-underline-opacity-75-hover">文青方盒</a>
+                    <a href="#"
+                        class="d-block link-secondary link-underline-opacity-0 link-underline-opacity-75-hover">輕巧包組</a>
+                    <a href="#"
+                        class="d-block link-secondary link-underline-opacity-0 link-underline-opacity-75-hover">加購包材</a>
+                </div>
+                <div class="col-md">
+                    <h6 class="fw-bold mb-2">品牌故事</h6>
+                    <a href="#"
+                        class="d-block link-secondary link-underline-opacity-0 link-underline-opacity-75-hover">品牌由來</a>
+                    <a href="#"
+                        class="d-block link-secondary link-underline-opacity-0 link-underline-opacity-75-hover">品牌名稱</a>
+                    <a href="#"
+                        class="d-block link-secondary link-underline-opacity-0 link-underline-opacity-75-hover">創業路上</a>
+                    <a href="#"
+                        class="d-block link-secondary link-underline-opacity-0 link-underline-opacity-75-hover">門市限定</a>
+                </div>
+            </div>
+        </footer>
+
+        <!-- 底部商標 -->
+        <footer class="container-fluid d-flex justify-content-center bg-warning border-top">
+            <div class="col-12 d-flex flex-column flex-sm-row justify-content-between">
+                <p class="mt-3 mx-5">© 2025 Egg Roll Hall.</p>
+                <ul class="list-unstyled d-flex mx-5">
+                    <li class="ms-3 mt-3">
+                        <a href="#" class="ms-2"><i class="bi bi-twitter-x"></i></a>
+                    </li>
+                    <li class="ms-3 mt-3">
+                        <a href="#" class="ms-2"><i class="bi bi-threads"></i></a>
+                    </li>
+                    <li class="ms-3 mt-3">
+                        <a href="#" class="ms-2"><i class="bi bi-instagram"></i></a>
+                    </li>
+                    <li class="ms-3 mt-3">
+                        <a href="#" class="ms-2"><i class="bi bi-facebook"></i></a>
+                    </li>
+                </ul>
+            </div>
+        </footer>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.5/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="./js/蛋捲商店.js"></script>
+</body>
+
+</html>
